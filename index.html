@@ -1,0 +1,1042 @@
+<!DOCTYPE html>
+<html lang="ja">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>IKKI REBIRTH: The Web Clone</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
+
+    :root {
+      --bg-color: #1a0f0a;
+      --ui-color: #ffd700;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      background-color: var(--bg-color);
+      color: var(--ui-color);
+      font-family: 'DotGothic16', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      overflow: hidden;
+      user-select: none;
+    }
+
+    h1 {
+      margin: 0 0 10px 0;
+      font-size: 2rem;
+      text-shadow: 2px 2px 0px #b22222, 4px 4px 0px #800000;
+      letter-spacing: 5px;
+    }
+
+    #game-wrapper {
+      position: relative;
+      box-shadow: 0 0 20px rgba(0, 0, 0, 0.8), 0 0 40px rgba(255, 215, 0, 0.1);
+      border: 4px solid #4a3621;
+      border-radius: 8px;
+      background-color: #3b592f;
+      /* 草地の色 */
+      overflow: hidden;
+    }
+
+    canvas {
+      display: block;
+      image-rendering: pixelated;
+      /* レトロ感 */
+    }
+
+    #ui-layer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 10px;
+      box-sizing: border-box;
+    }
+
+    .hud {
+      display: flex;
+      justify-content: space-between;
+      font-size: 1.2rem;
+      text-shadow: 2px 2px 0 #000;
+    }
+
+    .hud-item {
+      background: rgba(0, 0, 0, 0.5);
+      padding: 5px 10px;
+      border-radius: 4px;
+      border: 1px solid #4a3621;
+    }
+
+    #overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.7);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      z-index: 10;
+    }
+
+    #overlay h2 {
+      font-size: 3rem;
+      margin-bottom: 20px;
+      color: #ff3333;
+      text-shadow: 2px 2px 0px #fff;
+    }
+
+    .btn {
+      background: #b22222;
+      color: white;
+      border: 2px solid #ffd700;
+      padding: 10px 20px;
+      font-family: 'DotGothic16', sans-serif;
+      font-size: 1.5rem;
+      cursor: pointer;
+      border-radius: 4px;
+      transition: transform 0.1s, filter 0.2s;
+      pointer-events: auto;
+    }
+
+    .btn:hover {
+      filter: brightness(1.2);
+      transform: scale(1.05);
+    }
+
+    .btn:active {
+      transform: scale(0.95);
+    }
+
+    .controls-info {
+      margin-top: 15px;
+      font-size: 0.9rem;
+      color: #aaa;
+      text-align: center;
+      line-height: 1.5;
+      background: rgba(0, 0, 0, 0.5);
+      padding: 10px;
+      border-radius: 6px;
+      border: 1px solid #333;
+    }
+
+    #math-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: rgba(0, 0, 0, 0.9);
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      color: white;
+      z-index: 20;
+    }
+
+    .math-panel {
+      background: rgba(20, 10, 5, 0.9);
+      border: 4px solid #ffd700;
+      border-radius: 8px;
+      padding: 20px;
+      text-align: center;
+      width: 80%;
+      max-width: 400px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .math-panel h2 {
+      color: #ff3333;
+      margin-top: 0;
+      text-shadow: 2px 2px 0px #fff;
+    }
+
+    .math-question-text {
+      font-size: 1.5rem;
+      margin: 20px 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      min-height: 60px;
+    }
+
+    .math-fraction-display {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      vertical-align: middle;
+      font-size: 1.2rem;
+    }
+
+    .math-fraction-display .num {
+      border-bottom: 2px solid white;
+      padding: 0 4px;
+    }
+
+    .math-fraction-display .den {
+      padding: 0 4px;
+    }
+
+    .math-input-field {
+      font-family: 'DotGothic16', sans-serif;
+      font-size: 1.5rem;
+      padding: 5px;
+      margin: 10px 0;
+      width: 150px;
+      text-align: center;
+      background: #000;
+      color: #fff;
+      border: 2px solid #555;
+    }
+
+    .fraction-input-container {
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      gap: 5px;
+      margin: 10px 0;
+    }
+
+    .fraction-line {
+      width: 150px;
+      height: 3px;
+      background-color: #ffd700;
+    }
+
+    #math-error-msg {
+      color: #ff3333;
+      margin-top: 10px;
+      height: 1.5rem;
+    }
+  </style>
+</head>
+
+<body>
+
+  <h1>IKKI REBIRTH</h1>
+
+  <div id="game-wrapper">
+    <canvas id="gameCanvas" width="512" height="480"></canvas>
+    <div id="ui-layer">
+      <div class="hud">
+        <div class="hud-item" id="score-display">SCORE: 0</div>
+        <div class="hud-item" id="koban-display">KOBAN: 0/8</div>
+        <div class="hud-item" id="lives-display">LIVES: 3</div>
+      </div>
+    </div>
+    <div id="overlay">
+      <h2 id="overlay-title">FARMER'S REBELLION</h2>
+      <button id="start-btn" class="btn">GAME START</button>
+      <div id="controls-panel" class="controls-info">
+        [矢印キー / WASD] : 移動<br>
+        [Z / Space / クリック] : 小判を投げる<br>
+        フィールドに散らばる8枚の小判を集めろ！<br>
+        迫りくる忍者には小判を投げて撃退だ！
+      </div>
+    </div>
+
+    <div id="math-overlay">
+      <div class="math-panel">
+        <h2 id="math-panel-title">復活のチャンス！</h2>
+        <div id="math-lives-info" style="color:#aaa;">あと 2 回間違えるとゲームオーバー</div>
+        <div id="math-question" class="math-question-text">ここに問題</div>
+
+        <div id="normal-input-container">
+          <input type="text" id="math-input" class="math-input-field" autocomplete="off" placeholder="答え">
+        </div>
+
+        <div id="fraction-input-container" class="fraction-input-container">
+          <input type="text" id="math-numerator" class="math-input-field fraction-input" autocomplete="off"
+            placeholder="分子">
+          <div class="fraction-line"></div>
+          <input type="text" id="math-denominator" class="math-input-field fraction-input" autocomplete="off"
+            placeholder="分母">
+        </div>
+
+        <button id="math-submit-btn" class="btn">解答する</button>
+        <div id="math-error-msg"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    /**
+     * IKKI REBIRTH - HTML5 Canvas Action Game
+     * Logic: Top-down movement, shooting projectiles, enemy chasing, item collection.
+     */
+
+    const canvas = document.getElementById('gameCanvas');
+    const ctx = canvas.getContext('2d');
+
+    // UI Elements
+    const overlay = document.getElementById('overlay');
+    const startBtn = document.getElementById('start-btn');
+    const overlayTitle = document.getElementById('overlay-title');
+    const controlsPanel = document.getElementById('controls-panel');
+    const scoreDisplay = document.getElementById('score-display');
+    const kobanDisplay = document.getElementById('koban-display');
+    const livesDisplay = document.getElementById('lives-display');
+
+    // Math UI Elements
+    const mathOverlay = document.getElementById('math-overlay');
+    const mathQuestion = document.getElementById('math-question');
+    const normalInputContainer = document.getElementById('normal-input-container');
+    const fractionInputContainer = document.getElementById('fraction-input-container');
+    const mathInput = document.getElementById('math-input');
+    const mathNumerator = document.getElementById('math-numerator');
+    const mathDenominator = document.getElementById('math-denominator');
+    const mathSubmitBtn = document.getElementById('math-submit-btn');
+    const mathErrorMsg = document.getElementById('math-error-msg');
+    const mathLivesInfo = document.getElementById('math-lives-info');
+
+    // Game Constants
+    const TILE_SIZE = 32;
+    const GAME_WIDTH = canvas.width;
+    const GAME_HEIGHT = canvas.height;
+
+    // Game State
+    let gameState = 'START'; // START, PLAYING, GAMEOVER, CLEAR, MATH_QUESTION
+    let score = 0;
+    let requiredKoban = 8;
+    let collectedKoban = 0;
+    let lives = 3;
+    let frameCount = 0;
+    let animationId;
+
+    // Math System State
+    let mathWrongCount = 0;
+    let currentMathAnswer = "";
+    let isCurrentFraction = false;
+
+    // Input Handling
+    const keys = {
+      ArrowUp: false, ArrowDown: false, ArrowLeft: false, ArrowRight: false,
+      w: false, a: false, s: false, d: false,
+      z: false, ' ': false
+    };
+
+    let lastShotTime = 0;
+    const SHOT_COOLDOWN = 300; // ms
+
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT') return; // 入力欄の中ではゲーム操作を無効化
+      // Prevent scrolling when using arrow keys or space
+      if (["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight", " "].indexOf(e.key) > -1) {
+        e.preventDefault();
+      }
+      if (keys.hasOwnProperty(e.key)) keys[e.key] = true;
+      if (e.key.toLowerCase() === 'z' || e.key === ' ') {
+        if (gameState === 'PLAYING') tryShoot();
+      }
+    }, { passive: false });
+
+    window.addEventListener('keyup', (e) => {
+      if (keys.hasOwnProperty(e.key)) keys[e.key] = false;
+    });
+
+    canvas.addEventListener('mousedown', () => {
+      if (gameState === 'PLAYING') tryShoot();
+    });
+
+    startBtn.addEventListener('click', () => {
+      if (gameState === 'START' || gameState === 'GAMEOVER' || gameState === 'CLEAR') {
+        initGame();
+        // Give focus to the window so keys work immediately
+        window.focus();
+      }
+    });
+
+    // --- Math Problem Logic ---
+    function r(min, max) { return Math.floor(Math.random() * (max - min + 1)) + min; }
+    function gcd(a, b) { return b === 0 ? a : gcd(b, a % b); }
+    function s(n, d) {
+      if (n === 0) return "0";
+      let g = gcd(Math.abs(n), Math.abs(d));
+      n /= g; d /= g;
+      if (d < 0) { n = -n; d = -d; }
+      if (d === 1) return `${n}`;
+      return `${n}/${d}`;
+    }
+    function fixFloat(num) { return Math.round(num * 1000) / 1000; }
+
+    function makeFractionHTML(n, d) {
+      return `<div class="math-fraction-display"><div class="num">${n}</div><div class="den">${d}</div></div>`;
+    }
+
+    function generateQuestion() {
+      const types = ['fraction_add', 'fraction_sub', 'percentage_val', 'decimal_add', 'speed'];
+      // Math.random() の偏りを防ぎ、確実に各要素にアクセスする
+      const type = types[Math.floor(Math.random() * types.length)];
+      let q = "", a = "", isFrac = false;
+
+      if (type === 'fraction_add') {
+        let d1 = r(2, 9), n1 = r(1, d1 - 1);
+        let d2 = r(2, 9), n2 = r(1, d2 - 1);
+        q = `<span>${makeFractionHTML(n1, d1)}</span> <span>＋</span> <span>${makeFractionHTML(n2, d2)}</span> <span>＝</span>`;
+        let d = d1 * d2, n = n1 * d2 + n2 * d1;
+        a = s(n, d);
+        isFrac = true;
+      } else if (type === 'fraction_sub') {
+        let d1 = r(2, 9), n1 = r(1, d1 - 1);
+        let d2 = r(2, 9), n2 = r(1, d2 - 1);
+        if (n1 / d1 < n2 / d2) { let td = d1, tn = n1; d1 = d2; n1 = n2; d2 = td; n2 = tn; }
+        q = `<span>${makeFractionHTML(n1, d1)}</span> <span>－</span> <span>${makeFractionHTML(n2, d2)}</span> <span>＝</span>`;
+        let d = d1 * d2, n = n1 * d2 - n2 * d1;
+        a = s(n, d);
+        isFrac = true;
+      } else if (type === 'percentage_val') {
+        let base = r(1, 20) * 10;
+        let pct = r(1, 9) * 10;
+        q = `${base} の ${pct}% は？`;
+        a = `${(base * pct) / 100}`;
+      } else if (type === 'decimal_add') {
+        let n1 = r(1, 99) / 10;
+        let n2 = r(1, 99) / 10;
+        q = `${n1} + ${n2} は？`;
+        a = `${fixFloat(n1 + n2)}`;
+      } else if (type === 'speed') {
+        let spd = r(2, 60);
+        let time = r(2, 5);
+        q = `時速${spd}kmで${time}時間進むと何km？`;
+        a = `${spd * time}`;
+      }
+      return { text: q, answer: a, isFraction: isFrac };
+    }
+
+    // --- Entities ---
+
+    class Player {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 24;
+        this.height = 30;
+        this.speed = 1.5;
+        // 0: right, 1: down, 2: left, 3: up
+        this.facing = 0;
+        this.color = '#3b82f6'; // 農民の青い着物イメージ
+        this.invulnerable = 0;
+      }
+
+      update() {
+        if (this.invulnerable > 0) this.invulnerable--;
+
+        let dx = 0;
+        let dy = 0;
+
+        if (keys.ArrowLeft || keys.a) { dx = -this.speed; this.facing = 2; }
+        if (keys.ArrowRight || keys.d) { dx = this.speed; this.facing = 0; }
+        if (keys.ArrowUp || keys.w) { dy = -this.speed; this.facing = 3; }
+        if (keys.ArrowDown || keys.s) { dy = this.speed; this.facing = 1; }
+
+        // Diagonal speed normalization
+        if (dx !== 0 && dy !== 0) {
+          dx *= 0.707;
+          dy *= 0.707;
+        }
+
+        this.x += dx;
+        this.y += dy;
+
+        // Boundaries
+        this.x = Math.max(0, Math.min(GAME_WIDTH - this.width, this.x));
+        this.y = Math.max(0, Math.min(GAME_HEIGHT - this.height, this.y));
+      }
+
+      draw(ctx) {
+        // 点滅 (無敵時間)
+        if (this.invulnerable > 0 && Math.floor(Date.now() / 100) % 2 === 0) return;
+
+        // 体
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+
+        // 頭
+        ctx.fillStyle = '#ffcc99';
+        ctx.fillRect(this.x + 4, this.y - 10, 16, 14);
+
+        // 目 (向きに応じて)
+        ctx.fillStyle = '#000';
+        if (this.facing === 0) { // Right
+          ctx.fillRect(this.x + 14, this.y - 6, 4, 4);
+        } else if (this.facing === 2) { // Left
+          ctx.fillRect(this.x + 6, this.y - 6, 4, 4);
+        } else if (this.facing === 1) { // Down
+          ctx.fillRect(this.x + 6, this.y - 6, 4, 4);
+          ctx.fillRect(this.x + 14, this.y - 6, 4, 4);
+        }
+        // Up has no eyes visible
+
+        // 手の動き (歩行アニメーション)
+        const isMoving = (keys.ArrowLeft || keys.a || keys.ArrowRight || keys.d || keys.ArrowUp || keys.w || keys.ArrowDown || keys.s);
+        const walkOffset = isMoving ? Math.sin(frameCount * 0.2) * 4 : 0;
+
+        ctx.fillStyle = '#ffcc99';
+        // 左手
+        ctx.fillRect(this.x - 2, this.y + 10 + walkOffset, 6, 6);
+        // 右手
+        ctx.fillRect(this.x + this.width - 4, this.y + 10 - walkOffset, 6, 6);
+      }
+
+      // 簡易被弾判定用のヘルパー
+      getBounds() {
+        return { x: this.x, y: this.y, width: this.width, height: this.height };
+      }
+    }
+
+    class Projectile {
+      constructor(x, y, dx, dy) {
+        this.x = x;
+        this.y = y;
+        this.dx = dx;
+        this.dy = dy;
+        this.speed = 4;
+        this.radius = 6;
+        this.active = true;
+        this.rotation = 0;
+      }
+
+      update() {
+        this.x += this.dx * this.speed;
+        this.y += this.dy * this.speed;
+        this.rotation += 0.5;
+
+        // Off screen
+        if (this.x < 0 || this.x > GAME_WIDTH || this.y < 0 || this.y > GAME_HEIGHT) {
+          this.active = false;
+        }
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate(this.rotation);
+        // 投げ銭 (小判)
+        ctx.fillStyle = '#FFD700';
+        ctx.strokeStyle = '#B8860B';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, this.radius, this.radius * 1.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+        // 穴
+        ctx.fillStyle = '#000';
+        ctx.fillRect(-1, -1, 2, 2);
+        ctx.restore();
+      }
+
+      getBounds() {
+        return { x: this.x - this.radius, y: this.y - this.radius * 1.5, width: this.radius * 2, height: this.radius * 3 };
+      }
+    }
+
+    class Enemy {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.width = 24;
+        this.height = 30;
+        this.speed = 0.7 + Math.random() * 0.3; // バラつき
+        this.color = '#ff3333'; // 忍者 / 敵
+        this.active = true;
+        this.isGhost = Math.random() > 0.8; // 時々幽霊(地形無視・少し遅い等、今回は色だけ変える)
+
+        if (this.isGhost) {
+          this.color = 'rgba(200, 200, 255, 0.7)';
+          this.speed = 0.5;
+        }
+      }
+
+      update(player) {
+        // シンプルな追跡AI
+        let dx = player.x - this.x;
+        let dy = player.y - this.y;
+        let dist = Math.sqrt(dx * dx + dy * dy);
+
+        if (dist > 0) {
+          this.x += (dx / dist) * this.speed;
+          this.y += (dy / dist) * this.speed;
+        }
+      }
+
+      draw(ctx) {
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, this.width, this.height);
+
+        // 目
+        ctx.fillStyle = '#fff';
+        ctx.fillRect(this.x + 4, this.y + 6, 6, 4);
+        ctx.fillRect(this.x + 14, this.y + 6, 6, 4);
+        ctx.fillStyle = '#000';
+        ctx.fillRect(this.x + 6, this.y + 6, 2, 2);
+        ctx.fillRect(this.x + 16, this.y + 6, 2, 2);
+
+        // 手裏剣っぽい装飾
+        if (!this.isGhost) {
+          ctx.fillStyle = '#444';
+          ctx.fillRect(this.x + 10, this.y + 15, 4, 4);
+        }
+      }
+
+      getBounds() {
+        return { x: this.x, y: this.y, width: this.width, height: this.height };
+      }
+    }
+
+    class Coin {
+      constructor(x, y) {
+        this.x = x;
+        this.y = y;
+        this.radius = 10;
+        this.active = true;
+        this.hoverOffset = Math.random() * Math.PI * 2;
+      }
+
+      update() {
+        // フワフワ浮かぶアニメーション
+        this.yOffset = Math.sin(frameCount * 0.1 + this.hoverOffset) * 3;
+      }
+
+      draw(ctx) {
+        ctx.save();
+        ctx.translate(this.x, this.y + (this.yOffset || 0));
+
+        // 外枠
+        ctx.fillStyle = '#FFD700';
+        ctx.beginPath();
+        ctx.ellipse(0, 0, this.radius, this.radius * 1.5, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        // 内枠
+        ctx.strokeStyle = '#B8860B';
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, this.radius - 2, (this.radius * 1.5) - 2, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        // 穴
+        ctx.fillStyle = '#000';
+        ctx.fillRect(-2, -3, 4, 6);
+
+        ctx.restore();
+      }
+
+      getBounds() {
+        return { x: this.x - this.radius, y: this.y - this.radius * 1.5, width: this.radius * 2, height: this.radius * 3 };
+      }
+    }
+
+    class Particle {
+      constructor(x, y, color) {
+        this.x = x;
+        this.y = y;
+        this.vx = (Math.random() - 0.5) * 3;
+        this.vy = (Math.random() - 0.5) * 3;
+        this.color = color;
+        this.life = 1.0;
+        this.decay = 0.03 + Math.random() * 0.03;
+        this.size = 2 + Math.random() * 3;
+      }
+      update() {
+        this.x += this.vx;
+        this.y += this.vy;
+        this.life -= this.decay;
+      }
+      draw(ctx) {
+        ctx.globalAlpha = Math.max(0, this.life);
+        ctx.fillStyle = this.color;
+        ctx.fillRect(this.x, this.y, this.size, this.size);
+        ctx.globalAlpha = 1.0;
+      }
+    }
+
+    // --- Instantiation ---
+    let player;
+    let projectiles = [];
+    let enemies = [];
+    let coins = [];
+    let particles = [];
+    let enemySpawnTimer = 0;
+
+    function initGame() {
+      if (gameState === 'GAMEOVER') lives = 3; // Reset on true gameover
+      if (gameState === 'START' || gameState === 'GAMEOVER') score = 0;
+
+      gameState = 'PLAYING';
+      collectedKoban = 0;
+
+      player = new Player(GAME_WIDTH / 2, GAME_HEIGHT / 2);
+      projectiles = [];
+      enemies = [];
+      coins = [];
+      particles = [];
+      enemySpawnTimer = 0;
+
+      // 小判を配置
+      for (let i = 0; i < requiredKoban; i++) {
+        let cx = 40 + Math.random() * (GAME_WIDTH - 80);
+        let cy = 40 + Math.random() * (GAME_HEIGHT - 80);
+        coins.push(new Coin(cx, cy));
+      }
+
+      updateHUD();
+      overlay.style.display = 'none';
+
+      if (animationId) cancelAnimationFrame(animationId);
+      gameLoop();
+    }
+
+    // --- Mechanics ---
+
+    function tryShoot() {
+      const now = Date.now();
+      if (now - lastShotTime < SHOT_COOLDOWN) return;
+      lastShotTime = now;
+
+      let dx = 0, dy = 0;
+      // Move direction determines shoot direction
+      if (player.facing === 0) dx = 1;      // Right
+      else if (player.facing === 2) dx = -1; // Left
+      else if (player.facing === 3) dy = -1; // Up
+      else if (player.facing === 1) dy = 1;  // Down
+
+      projectiles.push(new Projectile(player.x + player.width / 2, player.y + player.height / 2, dx, dy));
+
+      // オマケ：2方向投げ（いっき特有のヤツ）を簡易再現
+      if (dx !== 0) {
+        projectiles.push(new Projectile(player.x + player.width / 2, player.y + player.height / 2, -dx, dy));
+      } else if (dy !== 0) {
+        projectiles.push(new Projectile(player.x + player.width / 2, player.y + player.height / 2, dx, -dy));
+      }
+    }
+
+    function spawnEnemy() {
+      enemySpawnTimer++;
+      // 敵の出現頻度をさらに半減（基本スポーン間隔を約4倍に）
+      let spawnRate = Math.max(120, 300 - (collectedKoban * 10) - Math.floor(score / 200));
+
+      if (enemySpawnTimer > spawnRate) {
+        enemySpawnTimer = 0;
+        // 画面外からスポーン
+        let ex = Math.random() > 0.5 ? -30 : GAME_WIDTH + 30;
+        let ey = Math.random() * GAME_HEIGHT;
+        if (Math.random() > 0.5) {
+          ex = Math.random() * GAME_WIDTH;
+          ey = Math.random() > 0.5 ? -30 : GAME_HEIGHT + 30;
+        }
+        enemies.push(new Enemy(ex, ey));
+      }
+    }
+
+    function createExplosion(x, y, color) {
+      for (let i = 0; i < 15; i++) {
+        particles.push(new Particle(x, y, color));
+      }
+    }
+
+    // AABB Collision
+    function checkCollision(rect1, rect2) {
+      return (
+        rect1.x < rect2.x + rect2.width &&
+        rect1.x + rect1.width > rect2.x &&
+        rect1.y < rect2.y + rect2.height &&
+        rect1.y + rect1.height > rect2.y
+      );
+    }
+
+    function handleCollisions() {
+      const pBounds = player.getBounds();
+
+      // 1. Player vs Coins
+      for (let i = coins.length - 1; i >= 0; i--) {
+        let c = coins[i];
+        if (c.active && checkCollision(pBounds, c.getBounds())) {
+          c.active = false;
+          collectedKoban++;
+          score += 100;
+          createExplosion(c.x, c.y, '#FFD700');
+          updateHUD();
+
+          if (collectedKoban >= requiredKoban) {
+            levelClear();
+          }
+        }
+      }
+      coins = coins.filter(c => c.active);
+
+      // 2. Projectiles vs Enemies
+      for (let p of projectiles) {
+        if (!p.active) continue;
+        let projBounds = p.getBounds();
+
+        for (let e of enemies) {
+          if (!e.active) continue;
+          if (checkCollision(projBounds, e.getBounds())) {
+            e.active = false;
+            p.active = false;
+            score += e.isGhost ? 50 : 20; // 幽霊はスコア高い
+            createExplosion(e.x + e.width / 2, e.y + e.height / 2, e.color);
+            updateHUD();
+            break;
+          }
+        }
+      }
+
+      // 3. Player vs Enemies (被弾)
+      if (player.invulnerable <= 0) {
+        for (let e of enemies) {
+          if (e.active && checkCollision(pBounds, e.getBounds())) {
+            playerHit();
+            break;
+          }
+        }
+      }
+    }
+
+    function playerHit() {
+      lives--;
+      createExplosion(player.x + player.width / 2, player.y + player.height / 2, '#3b82f6');
+      updateHUD();
+
+      if (lives <= 0) {
+        startMathRetry();
+      } else {
+        // 一時無敵＋リスポーンぽい処理
+        player.invulnerable = 120; // 2 seconds at 60fps
+        player.x = GAME_WIDTH / 2;
+        player.y = GAME_HEIGHT / 2;
+
+        // 敵を少し散らす
+        enemies.forEach(e => {
+          e.x += (e.x > player.x ? 100 : -100);
+          e.y += (e.y > player.y ? 100 : -100);
+        });
+      }
+    }
+
+    function levelClear() {
+      gameState = 'CLEAR';
+      score += 1000; // クリアボーナス
+      updateHUD();
+
+      overlayTitle.innerText = "STAGE CLEAR!!";
+      overlayTitle.style.color = "#FFD700";
+      startBtn.innerText = "NEXT STAGE";
+      controlsPanel.style.display = 'none';
+      overlay.style.display = 'flex';
+
+      // 難易度を上げるための準備
+      requiredKoban += 2;
+    }
+
+    function gameOver() {
+      gameState = 'GAMEOVER';
+
+      overlayTitle.innerText = "GAME OVER...";
+      overlayTitle.style.color = "#FF3333";
+      startBtn.innerText = "RETRY";
+      controlsPanel.style.display = 'block';
+      overlay.style.display = 'flex';
+
+      // 難易度リセット
+      requiredKoban = 8;
+    }
+
+    // --- Math Retry Logic ---
+    function startMathRetry() {
+      gameState = 'MATH_QUESTION';
+      mathWrongCount = 0;
+      mathErrorMsg.innerText = "";
+      mathOverlay.style.display = 'flex';
+
+      showNewMathQuestion();
+    }
+
+    function showNewMathQuestion() {
+      const q = generateQuestion();
+      currentMathAnswer = q.answer;
+      isCurrentFraction = q.isFraction;
+      mathQuestion.innerHTML = q.text;
+
+      mathLivesInfo.innerText = `あと ${2 - mathWrongCount} 回間違えるとゲームオーバー`;
+
+      if (isCurrentFraction) {
+        normalInputContainer.style.display = 'none';
+        fractionInputContainer.style.display = 'flex';
+        mathNumerator.value = '';
+        mathDenominator.value = '';
+        setTimeout(() => mathNumerator.focus(), 10);
+      } else {
+        fractionInputContainer.style.display = 'none';
+        normalInputContainer.style.display = 'block';
+        mathInput.value = '';
+        setTimeout(() => mathInput.focus(), 10);
+      }
+    }
+
+    function checkMathAnswer() {
+      if (gameState !== 'MATH_QUESTION') return;
+
+      let userAnswer = "";
+      if (isCurrentFraction) {
+        let n = mathNumerator.value.trim();
+        let d = mathDenominator.value.trim();
+        if (n === "") return;
+        userAnswer = d && d !== "1" ? `${n}/${d}` : `${n}`; // dが空または1なら整数扱い
+      } else {
+        userAnswer = mathInput.value.trim();
+      }
+
+      if (userAnswer === currentMathAnswer) {
+        // Correct
+        mathOverlay.style.display = 'none';
+        lives = 3;
+        player.invulnerable = 120;
+        player.x = GAME_WIDTH / 2;
+        player.y = GAME_HEIGHT / 2;
+        enemies.forEach(e => {
+          e.x += (e.x > player.x ? 100 : -100);
+          e.y += (e.y > player.y ? 100 : -100);
+        });
+        updateHUD();
+        gameState = 'PLAYING';
+        lastShotTime = Date.now(); // 防御
+        window.focus(); // ゲームにフォーカスを戻す
+        gameLoop(); // <--- ループを再開する
+      } else {
+        // Wrong
+        mathWrongCount++;
+        if (mathWrongCount >= 2) {
+          mathOverlay.style.display = 'none';
+          gameOver();
+        } else {
+          mathErrorMsg.innerText = "不正解！もう一度チャンス！";
+          showNewMathQuestion();
+        }
+      }
+    }
+
+    mathSubmitBtn.addEventListener('click', checkMathAnswer);
+    mathInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') checkMathAnswer(); });
+    mathNumerator.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        mathDenominator.focus();
+      }
+    });
+    mathDenominator.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        checkMathAnswer();
+      } else if (e.key === 'Backspace' && mathDenominator.value === "") {
+        e.preventDefault();
+        mathNumerator.focus();
+      }
+    });
+
+    function updateHUD() {
+      scoreDisplay.innerText = `SCORE: ${score}`;
+      kobanDisplay.innerText = `KOBAN: ${collectedKoban}/${requiredKoban}`;
+      livesDisplay.innerText = `LIVES: ${lives}`;
+    }
+
+    // --- Main Loop ---
+
+    function drawScenery() {
+      // 簡単な背景パターン (田んぼ/畑をイメージ)
+      ctx.fillStyle = '#3b592f'; // ベース
+      ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+      ctx.fillStyle = '#2c4224'; // 暗い草
+      for (let i = 0; i < GAME_WIDTH; i += 64) {
+        for (let j = 0; j < GAME_HEIGHT; j += 64) {
+          // ドットパターンの代わり
+          ctx.fillRect(i + 10, j + 10, 8, 8);
+          ctx.fillRect(i + 40, j + 30, 6, 6);
+        }
+      }
+
+      // 道しるべ的なアクセント
+      ctx.fillStyle = '#8B4513';
+      ctx.fillRect(100, 100, TILE_SIZE, TILE_SIZE);
+      ctx.fillRect(100, 132, TILE_SIZE, TILE_SIZE);
+      ctx.fillRect(132, 100, TILE_SIZE, TILE_SIZE);
+    }
+
+    function update() {
+      if (gameState !== 'PLAYING') return;
+      frameCount++;
+
+      player.update();
+      projectiles.forEach(p => p.update());
+      projectiles = projectiles.filter(p => p.active);
+
+      enemies.forEach(e => e.update(player));
+      enemies = enemies.filter(e => e.active);
+
+      coins.forEach(c => c.update());
+
+      particles.forEach(p => p.update());
+      particles = particles.filter(p => p.life > 0);
+
+      spawnEnemy();
+      handleCollisions();
+    }
+
+    function draw() {
+      // Clear
+      ctx.clearRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
+
+      if (gameState === 'START') {
+        // 背景だけ描く
+        drawScenery();
+        return;
+      }
+
+      drawScenery();
+
+      coins.forEach(c => c.draw(ctx));
+      projectiles.forEach(p => p.draw(ctx));
+      enemies.forEach(e => e.draw(ctx));
+      particles.forEach(p => p.draw(ctx));
+
+      if (gameState === 'PLAYING' || player.invulnerable > 0) {
+        player.draw(ctx);
+      }
+    }
+
+    function gameLoop() {
+      update();
+      draw();
+
+      if (gameState === 'PLAYING' || gameState === 'CLEAR' || gameState === 'GAMEOVER') {
+        animationId = requestAnimationFrame(gameLoop);
+      }
+    }
+
+    // 初期描画だけ
+    draw();
+
+  </script>
+</body>
+
+</html>

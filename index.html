@@ -1151,7 +1151,18 @@
         let n = mathNumerator.value.trim();
         let d = mathDenominator.value.trim();
         if (n === "") return;
-        userAnswer = d && d !== "1" ? `${n}/${d}` : `${n}`; // dが空または1なら整数扱い
+
+        // 分母がゼロの場合は数学的に定義されないので即時エラー（不正解扱いにする）
+        if (d === "0") {
+          mathErrorMsg.innerText = "分母は0以外にしてください";
+          return; // checkMathAnswer自体を中断し、不正解カウントすら進めない（親切設計）
+        }
+
+        if (n === "0") {
+          userAnswer = "0"; // 分子が0なら答えは0
+        } else {
+          userAnswer = d && d !== "1" ? `${n}/${d}` : `${n}`; // dが空または1なら整数扱い
+        }
       } else {
         userAnswer = mathInput.value.trim();
       }

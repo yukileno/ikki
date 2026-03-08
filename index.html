@@ -442,8 +442,63 @@
 
     // Game Constants
     const TILE_SIZE = 32;
-    const GAME_WIDTH = canvas.width;
-    const GAME_HEIGHT = canvas.height;
+    const GAME_WIDTH = canvas.width;  // 512 = 16 tiles
+    const GAME_HEIGHT = canvas.height; // 480 = 15 tiles
+    const MAP_COLS = Math.floor(GAME_WIDTH / TILE_SIZE);
+    const MAP_ROWS = Math.floor(GAME_HEIGHT / TILE_SIZE);
+
+    // Tile Types
+    const TILE = {
+      GROUND: 0,
+      WALL: 1, // 岩、石などぶつかるもの
+      WATER: 2, // 池など進めないもの
+      GRASS: 3  // 足元が隠れる草（描画のみの変化）
+    };
+
+    // Level Map (16x15)
+    let levelMap = [];
+    function generateLevelMap() {
+      levelMap = [];
+      for (let r = 0; r < MAP_ROWS; r++) {
+        let row = [];
+        for (let c = 0; c < MAP_COLS; c++) {
+          // 画面端は壁にする
+          if (r === 0 || r === MAP_ROWS - 1 || c === 0 || c === MAP_COLS - 1) {
+            row.push(TILE.WALL);
+            continue;
+          }
+          // 中央部分にランダムで障害物を配置
+          let rand = Math.random();
+          if (rand < 0.05) {
+            row.push(TILE.WATER); // 5% 水域
+          } else if (rand < 0.15) {
+            row.push(TILE.WALL); // 10% 壁・岩
+          } else if (rand < 0.3) {
+            row.push(TILE.GRASS); // 15% 草むら
+          } else {
+            row.push(TILE.GROUND);
+          }
+        }
+        levelMap.push(row);
+      }
+
+      // プレイヤースポーン位置周辺（中央）は必ず歩けるようにする
+      let centerC = Math.floor(MAP_COLS / 2);
+      let centerR = Math.floor(MAP_ROWS / 2);
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          levelMap[centerR + i][centerC + j] = TILE.GROUND;
+        }
+      }
+    }
+
+    // Helper: 座標からタイル種類を取得
+    function getTileAt(x, y) {
+      const col = Math.floor(x / TILE_SIZE);
+      const row = Math.floor(y / TILE_SIZE);
+      if (col < 0 || col >= MAP_COLS || row < 0 || row >= MAP_ROWS) return TILE.WALL;
+      return levelMap[row][col];
+    }
 
     // Game State
     let gameState = 'START'; // START, PLAYING, GAMEOVER, CLEAR, MATH_QUESTION, RANKING
@@ -612,8 +667,35 @@
           dy *= 0.707;
         }
 
-        this.x += dx;
-        this.y += dy;
+        // 障害物との当たり判定 (壁ずり処理付きの簡易版)
+        let newX = this.x + dx;
+        let newY = this.y + dy;
+
+        // X軸方向の判定
+        let pointsX = [
+          { x: newX, y: this.y },
+          { x: newX + this.width, y: this.y },
+          { x: newX, y: this.y + this.height },
+          { x: newX + this.width, y: this.y + this.height }
+        ];
+        let canMoveX = pointsX.every(p => {
+          let t = getTileAt(p.x, p.y);
+          return t !== TILE.WALL && t !== TILE.WATER;
+        });
+        if (canMoveX) this.x = newX;
+
+        // Y軸方向の判定
+        let pointsY = [
+          { x: this.x, y: newY },
+          { x: this.x + this.width, y: newY },
+          { x: this.x, y: newY + this.height },
+          { x: this.x + this.width, y: newY + this.height }
+        ];
+        let canMoveY = pointsY.every(p => {
+          let t = getTileAt(p.x, p.y);
+          return t !== TILE.WALL && t !== TILE.WATER;
+        });
+        if (canMoveY) this.y = newY;
 
         // Boundaries
         this.x = Math.max(0, Math.min(GAME_WIDTH - this.width, this.x));
@@ -725,14 +807,58 @@
       }
 
       update(player) {
-        // シンプルな追跡AI
-        let dx = player.x - this.x;
-        let dy = player.y - this.y;
-        let dist = Math.sqrt(dx * dx + dy * dy);
+        let dx = 0;
+        let dy = 0;
 
-        if (dist > 0) {
-          this.x += (dx / dist) * this.speed;
-          this.y += (dy / dist) * this.speed;
+        if (!this.isGhost) {
+          // 通常の忍者：少しブレながらプレイヤーを追う
+          // 障害物を迂回するのは複雑なので、壁にぶつかったらランダムに滑る簡易処理
+          const targetX = player.x + (Math.random() - 0.5) * 50;
+          const targetY = player.y + (Math.random() - 0.5) * 50;
+
+          if (targetX > this.x) dx = this.speed;
+          if (targetX < this.x) dx = -this.speed;
+          if (targetY > this.y) dy = this.speed;
+          if (targetY < this.y) dy = -this.speed;
+
+          let newX = this.x + dx;
+          let newY = this.y + dy;
+
+          // 敵の四隅での判定
+          let pointsX = [
+            { x: newX, y: this.y }, { x: newX + this.width, y: this.y },
+            { x: newX, y: this.y + this.height }, { x: newX + this.width, y: this.y + this.height }
+          ];
+          let canMoveX = pointsX.every(p => {
+            let t = getTileAt(p.x, p.y);
+            return t !== TILE.WALL && t !== TILE.WATER;
+          });
+
+          let pointsY = [
+            { x: this.x, y: newY }, { x: this.x + this.width, y: newY },
+            { x: this.x, y: newY + this.height }, { x: this.x + this.width, y: newY + this.height }
+          ];
+          let canMoveY = pointsY.every(p => {
+            let t = getTileAt(p.x, p.y);
+            return t !== TILE.WALL && t !== TILE.WATER;
+          });
+
+          if (canMoveX) this.x = newX;
+          else {
+            // 壁にぶつかったら、縦に滑りやすくする
+            this.y += (Math.random() > 0.5 ? this.speed : -this.speed) * 2;
+          }
+
+          if (canMoveY) this.y = newY;
+          else {
+            this.x += (Math.random() > 0.5 ? this.speed : -this.speed) * 2;
+          }
+
+        } else {
+          // 幽霊は壁を無視して一直線にプレイヤーへ向かう
+          const angle = Math.atan2(player.y - this.y, player.x - this.x);
+          this.x += Math.cos(angle) * this.speed;
+          this.y += Math.sin(angle) * this.speed;
         }
       }
 
@@ -842,6 +968,9 @@
       gameState = 'PLAYING';
       collectedKoban = 0;
 
+      // マップ生成
+      generateLevelMap();
+
       player = new Player(GAME_WIDTH / 2, GAME_HEIGHT / 2);
       projectiles = [];
       enemies = [];
@@ -849,10 +978,19 @@
       particles = [];
       enemySpawnTimer = 0;
 
-      // 小判を配置
+      // 小判を配置 (壁や水の中に埋まらないようにする)
       for (let i = 0; i < requiredKoban; i++) {
-        let cx = 40 + Math.random() * (GAME_WIDTH - 80);
-        let cy = 40 + Math.random() * (GAME_HEIGHT - 80);
+        let cx, cy, tileCol, tileRow, tileType;
+        let attempts = 0;
+        do {
+          cx = 40 + Math.random() * (GAME_WIDTH - 80);
+          cy = 40 + Math.random() * (GAME_HEIGHT - 80);
+          tileCol = Math.floor(cx / TILE_SIZE);
+          tileRow = Math.floor(cy / TILE_SIZE);
+          tileType = levelMap[tileRow] ? levelMap[tileRow][tileCol] : TILE.WALL;
+          attempts++;
+        } while ((tileType === TILE.WALL || tileType === TILE.WATER) && attempts < 100);
+
         coins.push(new Coin(cx, cy));
       }
 
@@ -1223,24 +1361,55 @@
     // --- Main Loop ---
 
     function drawScenery() {
-      // 簡単な背景パターン (田んぼ/畑をイメージ)
-      ctx.fillStyle = '#3b592f'; // ベース
+      // 画面全体をベース色（基本は地面の色）で塗りつぶし
+      ctx.fillStyle = '#C2B280'; // 乾いた地面・土
       ctx.fillRect(0, 0, GAME_WIDTH, GAME_HEIGHT);
 
-      ctx.fillStyle = '#2c4224'; // 暗い草
-      for (let i = 0; i < GAME_WIDTH; i += 64) {
-        for (let j = 0; j < GAME_HEIGHT; j += 64) {
-          // ドットパターンの代わり
-          ctx.fillRect(i + 10, j + 10, 8, 8);
-          ctx.fillRect(i + 40, j + 30, 6, 6);
+      // マップデータに基づくタイル描画
+      for (let r = 0; r < MAP_ROWS; r++) {
+        for (let c = 0; c < MAP_COLS; c++) {
+          const type = levelMap[r][c];
+          const x = c * TILE_SIZE;
+          const y = r * TILE_SIZE;
+
+          if (type === TILE.WALL) {
+            // 岩/壁
+            ctx.fillStyle = '#6e6e6e';
+            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            ctx.fillStyle = '#8f8f8f';
+            ctx.fillRect(x + 2, y + 2, TILE_SIZE - 4, TILE_SIZE - 4);
+            ctx.fillStyle = '#4a4a4a';
+            ctx.beginPath();
+            ctx.moveTo(x, y + TILE_SIZE);
+            ctx.lineTo(x + TILE_SIZE, y + TILE_SIZE);
+            ctx.lineTo(x + TILE_SIZE, y);
+            ctx.stroke();
+          } else if (type === TILE.WATER) {
+            // 水場
+            ctx.fillStyle = '#4682B4';
+            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            // 水面の波紋的な表現
+            ctx.fillStyle = '#87CEEB';
+            ctx.fillRect(x + 4 + Math.sin(frameCount * 0.05 + r) * 4, y + 8, 8, 2);
+            ctx.fillRect(x + 12 - Math.sin(frameCount * 0.05 + c) * 4, y + 20, 10, 2);
+          } else if (type === TILE.GRASS) {
+            // 草むら
+            ctx.fillStyle = '#3b592f';
+            ctx.fillRect(x, y, TILE_SIZE, TILE_SIZE);
+            // 草のディテール
+            ctx.fillStyle = '#4caf50';
+            ctx.fillRect(x + 8, y + 8, 4, 12);
+            ctx.fillRect(x + 16, y + 16, 4, 12);
+            ctx.fillRect(x + 24, y + 4, 4, 12);
+          } else if (type === TILE.GROUND) {
+            // 何もない地面に少し模様を入れる（土のポツポツ）
+            if ((r + c) % 2 === 0) {
+              ctx.fillStyle = '#A89B66';
+              ctx.fillRect(x + Math.floor(TILE_SIZE / 2), y + Math.floor(TILE_SIZE / 2), 4, 4);
+            }
+          }
         }
       }
-
-      // 道しるべ的なアクセント
-      ctx.fillStyle = '#8B4513';
-      ctx.fillRect(100, 100, TILE_SIZE, TILE_SIZE);
-      ctx.fillRect(100, 132, TILE_SIZE, TILE_SIZE);
-      ctx.fillRect(132, 100, TILE_SIZE, TILE_SIZE);
     }
 
     function update() {

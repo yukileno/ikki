@@ -842,7 +842,7 @@
         this.y = y;
         this.width = 24;
         this.height = 30;
-        this.speed = (0.7 + Math.random() * 0.3) * 1.5; // 変更: 敵のスピードを1.5倍
+        this.speed = (0.7 + Math.random() * 0.3) * 1.2; // 変更: 赤い敵のスピードを元の1.2倍 (1.5倍 * 80%) に減速
         this.color = '#ff3333'; // 忍者 / 敵
         this.active = true;
         this.isGhost = Math.random() > 0.8; // 時々幽霊(地形無視・少し遅い等、今回は色だけ変える)

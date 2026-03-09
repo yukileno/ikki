@@ -514,12 +514,7 @@
       for (let r = 0; r < MAP_ROWS; r++) {
         let row = [];
         for (let c = 0; c < MAP_COLS; c++) {
-          // 画面端は壁にする
-          if (r === 0 || r === MAP_ROWS - 1 || c === 0 || c === MAP_COLS - 1) {
-            row.push(TILE.WALL);
-            continue;
-          }
-          // 中央部分にランダムで障害物を配置
+          // ランダムで障害物を配置
           let rand = Math.random();
           if (rand < 0.05) {
             row.push(TILE.WATER); // 5% 水域
@@ -557,7 +552,7 @@
     let score = 0;
     let requiredKoban = 8;
     let collectedKoban = 0;
-    let lives = 3;
+    let lives = 1; // 変更: 初期ライフを1に変更
     let frameCount = 0;
     let animationId;
 
@@ -847,7 +842,7 @@
         this.y = y;
         this.width = 24;
         this.height = 30;
-        this.speed = 0.7 + Math.random() * 0.3; // バラつき
+        this.speed = (0.7 + Math.random() * 0.3) * 1.5; // 変更: 敵のスピードを1.5倍
         this.color = '#ff3333'; // 忍者 / 敵
         this.active = true;
         this.isGhost = Math.random() > 0.8; // 時々幽霊(地形無視・少し遅い等、今回は色だけ変える)
@@ -1014,7 +1009,7 @@
     let enemySpawnTimer = 0;
 
     function initGame() {
-      if (gameState === 'GAMEOVER') lives = 3; // Reset on true gameover
+      if (gameState === 'GAMEOVER') lives = 1; // 変更: ゲームオーバー時のリセットも3から1に
       if (gameState === 'START' || gameState === 'GAMEOVER') score = 0;
 
       gameState = 'PLAYING';
@@ -1084,8 +1079,8 @@
 
     function spawnEnemy() {
       enemySpawnTimer++;
-      // 敵の出現頻度をさらに半減（基本スポーン間隔を約4倍に）
-      let spawnRate = Math.max(120, 300 - (collectedKoban * 10) - Math.floor(score / 200));
+      // 敵の出現頻度を上げる（スポーン間隔を半分にして数はおよそ2倍）
+      let spawnRate = Math.max(120, 300 - (collectedKoban * 10) - Math.floor(score / 200)) / 2;
 
       if (enemySpawnTimer > spawnRate) {
         enemySpawnTimer = 0;
@@ -1371,7 +1366,7 @@
         // Correct
         playSoundCorrect();
         mathOverlay.style.display = 'none';
-        lives = 3;
+        lives = 1; // 変更: 復活時のライフも1にする
         player.invulnerable = 120;
         player.x = GAME_WIDTH / 2;
         player.y = GAME_HEIGHT / 2;
